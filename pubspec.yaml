@@ -62,7 +62,7 @@ dependencies:
   flutter_countdown_timer: ^4.1.0
   tinycolor2: ^3.0.1
 
-  manup: ^9.0.1
+  # manup: ^9.0.1  # Was used to retrieve the manup.json, but depends on firebase
   path: ^1.8.2
   timezone: ^0.9.1
 
