@@ -13,6 +13,11 @@ on:
         required: true
         type: boolean
         default: true
+      build_ios:
+        description: 'Build and Deploy iOS'
+        required: true
+        type: boolean
+        default: false
 
 jobs:
   job-linux:
@@ -130,7 +135,7 @@ jobs:
 
   job-apple:
     runs-on: macos-latest
-    if: ${{ inputs.build_desktop }}
+    if: ${{ inputs.build_desktop || inputs.build_ios }}
 
     steps:
     - uses: actions/checkout@v2
@@ -144,7 +149,7 @@ jobs:
 
     - name: Update dependencies
       run: | 
-        flutter config --enable-macos-desktop
+        flutter config --enable-macos-desktop --enable-ios
         flutter pub get
     
     # This is to give an offset since builds before this repo were in the 100's
@@ -159,8 +164,9 @@ jobs:
       run: echo "##[set-output name=name;]$(echo sweet_$BUILD_NUMBER)"
       id: app_build
 
-    # - name: Building ${{ steps.app_build.outputs.name }} iOS
-    #   run: flutter build ios --build-number $BUILD_NUMBER --release --no-codesign --config-only
+    - name: Building ${{ steps.app_build.outputs.name }} iOS
+      if: ${{ inputs.build_ios }}
+      run: flutter build ios --build-number $BUILD_NUMBER --release --no-codesign --config-only
 
     # - name: Setup Ruby
     #   uses: ruby/setup-ruby@v1.133.2
@@ -181,9 +187,11 @@ jobs:
     #     FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
 
     - name: Building ${{ steps.app_build.outputs.name }} MacOS
+      if: ${{ inputs.build_desktop }}
       run: flutter build macos --build-number $BUILD_NUMBER --release
 
     - name: 'Zipping build'
+      if: ${{ inputs.build_desktop }}
       run: |
         pushd build/macos/Build/Products/Release/
         zip -r ${{ steps.app_build.outputs.name }}-macos.zip SWEET.app
@@ -191,6 +199,7 @@ jobs:
         mv build/macos/Build/Products/Release/${{ steps.app_build.outputs.name }}-macos.zip ./${{ steps.app_build.outputs.name }}-macos.zip
 
     - name: 'Uploading artifact'
+      if: ${{ inputs.build_desktop }}
       uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.app_build.outputs.name }}-macos
